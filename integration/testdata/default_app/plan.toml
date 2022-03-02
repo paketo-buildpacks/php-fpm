@@ -1,0 +1,5 @@
+[[requires]]
+  name = "php-fpm"
+
+  [requires.metadata]
+    launch = true
