@@ -74,16 +74,12 @@ func TestIntegration(t *testing.T) {
 		Execute(config.BuildPlan)
 	Expect(err).NotTo(HaveOccurred())
 
-	// TODO: remove WithVersion from this and offline
-	// point the integration.json at the real PHP Dist buildpack
 	phpBuildpack, err = buildpackStore.Get.
-		WithVersion("1.2.3").
 		Execute(config.PhpDist)
 	Expect(err).NotTo(HaveOccurred())
 
 	phpOfflineBuildpack, err = buildpackStore.Get.
 		WithOfflineDependencies().
-		WithVersion("1.2.3").
 		Execute(config.PhpDist)
 	Expect(err).NotTo(HaveOccurred())
 
