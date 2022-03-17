@@ -31,13 +31,28 @@ func testDetect(t *testing.T, context spec.G, it spec.S) {
 		Expect(os.RemoveAll(workingDir)).To(Succeed())
 	})
 
-	context("when conditions for detect true are met", func() {
-		it("detects", func() {
+	context("in all cases", func() {
+		it("requires php and provides php-fpm", func() {
 			result, err := detect(packit.DetectContext{
 				WorkingDir: workingDir,
 			})
 			Expect(err).NotTo(HaveOccurred())
-			Expect(result.Plan).To(Equal(packit.BuildPlan{}))
+			Expect(result.Plan).To(Equal(packit.BuildPlan{
+				Requires: []packit.BuildPlanRequirement{
+					{
+						Name: phpfpm.PhpDist,
+						Metadata: map[string]interface{}{
+							"build":  true,
+							"launch": true,
+						},
+					},
+				},
+				Provides: []packit.BuildPlanProvision{
+					{
+						Name: phpfpm.PhpFpmDependency,
+					},
+				},
+			}))
 		})
 	})
 }
