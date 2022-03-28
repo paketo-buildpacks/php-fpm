@@ -2,7 +2,6 @@ package phpfpm
 
 import (
 	"os"
-	"time"
 
 	"github.com/paketo-buildpacks/packit/v2"
 	"github.com/paketo-buildpacks/packit/v2/chronos"
@@ -69,9 +68,6 @@ func Build(entryResolver EntryResolver, config ConfigWriter, clock chronos.Clock
 		configLayer.Build = build
 
 		configLayer.SharedEnv.Default("PHP_FPM_PATH", phpFpmPath)
-		configLayer.Metadata = map[string]interface{}{
-			"built_at": clock.Now().Format(time.RFC3339Nano),
-		}
 		logger.EnvironmentVariables(configLayer)
 
 		return packit.BuildResult{
