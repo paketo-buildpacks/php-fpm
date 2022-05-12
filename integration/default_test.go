@@ -112,7 +112,6 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 			Expect(logs).To(ContainLines(
 				MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, buildpackInfo.Buildpack.Name)),
 				"  Getting the layer associated with FPM",
-				"    /layers/paketo-buildpacks_php-fpm/php-fpm-config",
 				fmt.Sprintf("    /layers/%s/php-fpm-config", strings.ReplaceAll(buildpackInfo.Buildpack.ID, "/", "_")),
 			))
 			Expect(logs).To(ContainLines(
