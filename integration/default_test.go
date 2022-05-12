@@ -113,11 +113,12 @@ func testDefault(t *testing.T, context spec.G, it spec.S) {
 				MatchRegexp(fmt.Sprintf(`%s \d+\.\d+\.\d+`, buildpackInfo.Buildpack.Name)),
 				"  Getting the layer associated with FPM",
 				"    /layers/paketo-buildpacks_php-fpm/php-fpm-config",
+				fmt.Sprintf("    /layers/%s/php-fpm-config", strings.ReplaceAll(buildpackInfo.Buildpack.ID, "/", "_")),
 			))
 			Expect(logs).To(ContainLines(
 				"  Setting up the FPM configuration file",
 				"    Getting the PHP Distribution $PHPRC path",
-				"    PHPRC: /layers/paketo-buildpacks_php-dist/php/etc",
+				MatchRegexp(`    PHPRC: /layers/[\w-]+_php-dist/php/etc`)
 			))
 			Expect(logs).To(ContainLines(
 				"  Configuring build environment",
