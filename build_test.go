@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/paketo-buildpacks/packit/v2"
-	"github.com/paketo-buildpacks/packit/v2/chronos"
 	"github.com/paketo-buildpacks/packit/v2/scribe"
 	phpfpm "github.com/paketo-buildpacks/php-fpm"
 	"github.com/paketo-buildpacks/php-fpm/fakes"
@@ -26,9 +25,8 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		workingDir string
 		cnbDir     string
 
-		buffer        *bytes.Buffer
-		config        *fakes.ConfigWriter
-		entryResolver *fakes.EntryResolver
+		buffer *bytes.Buffer
+		config *fakes.ConfigWriter
 
 		buildContext packit.BuildContext
 		build        packit.BuildFunc
@@ -45,12 +43,8 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		workingDir, err = os.MkdirTemp("", "working-dir")
 		Expect(err).NotTo(HaveOccurred())
 
-		clock := chronos.DefaultClock
-
 		buffer = bytes.NewBuffer(nil)
 		logEmitter := scribe.NewEmitter(buffer)
-
-		entryResolver = &fakes.EntryResolver{}
 
 		config = &fakes.ConfigWriter{}
 		config.WriteCall.Returns.String = "some-path"
@@ -73,7 +67,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			Layers: packit.Layers{Path: layersDir},
 		}
 
-		build = phpfpm.Build(entryResolver, config, clock, logEmitter)
+		build = phpfpm.Build(config, logEmitter)
 	})
 
 	it.After(func() {
@@ -92,11 +86,6 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		Expect(config.WriteCall.Receives.WorkingDir).To(Equal(workingDir))
 		Expect(config.WriteCall.Receives.CnbPath).To(Equal(cnbDir))
 
-		Expect(entryResolver.MergeLayerTypesCall.Receives.Name).To(Equal(phpfpm.PhpFpmDependency))
-		Expect(entryResolver.MergeLayerTypesCall.Receives.Entries).To(Equal([]packit.BuildpackPlanEntry{
-			{Name: "some-entry"},
-		}))
-
 		Expect(result.Layers).To(HaveLen(1))
 		Expect(result.Layers[0].Name).To(Equal("php-fpm-config"))
 		Expect(result.Layers[0].Path).To(Equal(filepath.Join(layersDir, "php-fpm-config")))
@@ -111,9 +100,15 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 
 	context("when php-fpm is required at build/launch time", func() {
 		it.Before(func() {
-			entryResolver.MergeLayerTypesCall.Returns.Launch = true
-			entryResolver.MergeLayerTypesCall.Returns.Build = true
+			buildContext.Plan.Entries = append(buildContext.Plan.Entries, packit.BuildpackPlanEntry{
+				Name: phpfpm.PhpFpmDependency,
+				Metadata: map[string]interface{}{
+					"build":  true,
+					"launch": true,
+				},
+			})
 		})
+
 		it("makes the layer available at build and launch time", func() {
 			result, err := build(buildContext)
 			Expect(err).NotTo(HaveOccurred())
