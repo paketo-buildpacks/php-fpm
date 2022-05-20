@@ -30,7 +30,8 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 		config        *fakes.ConfigWriter
 		entryResolver *fakes.EntryResolver
 
-		build packit.BuildFunc
+		buildContext packit.BuildContext
+		build        packit.BuildFunc
 	)
 
 	it.Before(func() {
@@ -56,18 +57,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 
 		Expect(os.Setenv("PHPRC", "some-php-dist-path")).To(Succeed())
 
-		build = phpfpm.Build(entryResolver, config, clock, logEmitter)
-	})
-
-	it.After(func() {
-		Expect(os.RemoveAll(layersDir)).To(Succeed())
-		Expect(os.RemoveAll(cnbDir)).To(Succeed())
-		Expect(os.RemoveAll(workingDir)).To(Succeed())
-		Expect(os.Unsetenv("PHPRC")).To(Succeed())
-	})
-
-	it("writes a config file into its layer and stores the location in an env var", func() {
-		result, err := build(packit.BuildContext{
+		buildContext = packit.BuildContext{
 			WorkingDir: workingDir,
 			CNBPath:    cnbDir,
 			Stack:      "some-stack",
@@ -81,7 +71,20 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 				},
 			},
 			Layers: packit.Layers{Path: layersDir},
-		})
+		}
+
+		build = phpfpm.Build(entryResolver, config, clock, logEmitter)
+	})
+
+	it.After(func() {
+		Expect(os.RemoveAll(layersDir)).To(Succeed())
+		Expect(os.RemoveAll(cnbDir)).To(Succeed())
+		Expect(os.RemoveAll(workingDir)).To(Succeed())
+		Expect(os.Unsetenv("PHPRC")).To(Succeed())
+	})
+
+	it("writes a config file into its layer and stores the location in an env var", func() {
+		result, err := build(buildContext)
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(config.WriteCall.Receives.Layer).To(Equal(filepath.Join(layersDir, phpfpm.PhpFpmConfigLayerName)))
@@ -112,21 +115,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 			entryResolver.MergeLayerTypesCall.Returns.Build = true
 		})
 		it("makes the layer available at build and launch time", func() {
-			result, err := build(packit.BuildContext{
-				WorkingDir: workingDir,
-				CNBPath:    cnbDir,
-				Stack:      "some-stack",
-				BuildpackInfo: packit.BuildpackInfo{
-					Name:    "Some Buildpack",
-					Version: "some-version",
-				},
-				Plan: packit.BuildpackPlan{
-					Entries: []packit.BuildpackPlanEntry{
-						{Name: "some-entry"},
-					},
-				},
-				Layers: packit.Layers{Path: layersDir},
-			})
+			result, err := build(buildContext)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(result.Layers).To(HaveLen(1))
@@ -144,21 +133,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 				Expect(err).NotTo(HaveOccurred())
 			})
 			it("returns an error", func() {
-				_, err := build(packit.BuildContext{
-					WorkingDir: workingDir,
-					CNBPath:    cnbDir,
-					Stack:      "some-stack",
-					BuildpackInfo: packit.BuildpackInfo{
-						Name:    "Some Buildpack",
-						Version: "some-version",
-					},
-					Plan: packit.BuildpackPlan{
-						Entries: []packit.BuildpackPlanEntry{
-							{Name: phpfpm.PhpFpmDependency},
-						},
-					},
-					Layers: packit.Layers{Path: layersDir},
-				})
+				_, err := build(buildContext)
 				Expect(err).To(MatchError(ContainSubstring("failed to parse layer content metadata")))
 			})
 		})
@@ -168,21 +143,7 @@ func testBuild(t *testing.T, context spec.G, it spec.S) {
 				config.WriteCall.Returns.Error = errors.New("config writing error")
 			})
 			it("returns an error", func() {
-				_, err := build(packit.BuildContext{
-					WorkingDir: workingDir,
-					CNBPath:    cnbDir,
-					Stack:      "some-stack",
-					BuildpackInfo: packit.BuildpackInfo{
-						Name:    "Some Buildpack",
-						Version: "some-version",
-					},
-					Plan: packit.BuildpackPlan{
-						Entries: []packit.BuildpackPlanEntry{
-							{Name: phpfpm.PhpFpmDependency},
-						},
-					},
-					Layers: packit.Layers{Path: layersDir},
-				})
+				_, err := build(buildContext)
 				Expect(err).To(MatchError(ContainSubstring("config writing error")))
 			})
 		})
