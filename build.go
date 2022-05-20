@@ -4,17 +4,9 @@ import (
 	"os"
 
 	"github.com/paketo-buildpacks/packit/v2"
-	"github.com/paketo-buildpacks/packit/v2/chronos"
+	"github.com/paketo-buildpacks/packit/v2/draft"
 	"github.com/paketo-buildpacks/packit/v2/scribe"
 )
-
-//go:generate faux --interface EntryResolver --output fakes/entry_resolver.go
-
-// EntryResolver defines the interface for picking the most relevant entry from
-// the Buildpack Plan entries.
-type EntryResolver interface {
-	MergeLayerTypes(name string, entries []packit.BuildpackPlanEntry) (launch, build bool)
-}
 
 //go:generate faux --interface ConfigWriter --output fakes/config_writer.go
 
@@ -28,10 +20,9 @@ type ConfigWriter interface {
 // phase of the buildpack lifecycle.
 //
 // Build will create a layer dedicated to PHP FPM configuration, configure default FPM
-// settings, incorporate other configuration sources, and make the
-// configuration available at both build-time and
-// launch-time.
-func Build(entryResolver EntryResolver, config ConfigWriter, clock chronos.Clock, logger scribe.Emitter) packit.BuildFunc {
+// settings, incorporate other configuration sources, and make the configuration available
+// at both build-time and launch-time.
+func Build(config ConfigWriter, logger scribe.Emitter) packit.BuildFunc {
 	return func(context packit.BuildContext) (packit.BuildResult, error) {
 		logger.Title("%s %s", context.BuildpackInfo.Name, context.BuildpackInfo.Version)
 
@@ -63,9 +54,8 @@ func Build(entryResolver EntryResolver, config ConfigWriter, clock chronos.Clock
 			return packit.BuildResult{}, err
 		}
 
-		launch, build := entryResolver.MergeLayerTypes(PhpFpmDependency, context.Plan.Entries)
-		configLayer.Launch = launch
-		configLayer.Build = build
+		planner := draft.NewPlanner()
+		configLayer.Launch, configLayer.Build = planner.MergeLayerTypes(PhpFpmDependency, context.Plan.Entries)
 
 		configLayer.SharedEnv.Default("PHP_FPM_PATH", phpFpmPath)
 		logger.EnvironmentVariables(configLayer)
