@@ -5,7 +5,7 @@ api = "0.7"
   homepage = "https://github.com/paketo-buildpacks/php-fpm"
   id = "paketo-buildpacks/php-fpm"
   keywords = ["php", "fpm"]
-  name = "Paketo PHP FPM Buildpack"
+  name = "Paketo Buildpack for PHP FPM"
 
   [[buildpack.licenses]]
     type = "Apache-2.0"
