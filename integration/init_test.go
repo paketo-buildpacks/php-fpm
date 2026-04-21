@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
@@ -44,7 +45,11 @@ func TestIntegration(t *testing.T) {
 
 	file, err := os.Open("../integration.json")
 	Expect(err).NotTo(HaveOccurred())
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); err != nil {
+			Expect(err).NotTo(HaveOccurred())
+		}
+	}()
 
 	Expect(json.NewDecoder(file).Decode(&config)).To(Succeed())
 
@@ -58,6 +63,7 @@ func TestIntegration(t *testing.T) {
 	Expect(err).ToNot(HaveOccurred())
 
 	buildpackStore := occam.NewBuildpackStore()
+	targetedBuildpackStore := buildpackStore.WithTarget("linux/" + runtime.GOARCH)
 
 	buildpack, err = buildpackStore.Get.
 		WithVersion("1.2.3").
@@ -70,15 +76,15 @@ func TestIntegration(t *testing.T) {
 		Execute(root)
 	Expect(err).NotTo(HaveOccurred())
 
-	buildPlanBuildpack, err = buildpackStore.Get.
+	buildPlanBuildpack, err = targetedBuildpackStore.Get.
 		Execute(config.BuildPlan)
 	Expect(err).NotTo(HaveOccurred())
 
-	phpBuildpack, err = buildpackStore.Get.
+	phpBuildpack, err = targetedBuildpackStore.Get.
 		Execute(config.PhpDist)
 	Expect(err).NotTo(HaveOccurred())
 
-	phpOfflineBuildpack, err = buildpackStore.Get.
+	phpOfflineBuildpack, err = targetedBuildpackStore.Get.
 		WithOfflineDependencies().
 		Execute(config.PhpDist)
 	Expect(err).NotTo(HaveOccurred())
