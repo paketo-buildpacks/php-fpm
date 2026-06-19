@@ -92,7 +92,11 @@ func (c Config) Write(phpFpmLayer, phpDistPath, workingDir, cnbPath string) (str
 	if err != nil {
 		return "", err
 	}
-	defer f.Close()
+	defer func() {
+		if err := f.Close(); err != nil {
+			fmt.Fprintf(os.Stderr, "failed to close file: %v\n", err)
+		}
+	}()
 
 	_, err = io.Copy(f, &b)
 	if err != nil {
